@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出版社資料庫</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #333; padding: 30px; }
+.container { max-width: 1100px; margin: 0 auto; }
+h1 { text-align: center; margin-bottom: 8px; color: #1a1a2e; font-size: 28px; }
+.subtitle { text-align: center; color: #666; margin-bottom: 24px; font-size: 14px; }
+
+.form-section { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 20px; }
+.form-section h2 { font-size: 16px; margin-bottom: 16px; color: #1a1a2e; }
+.form-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.form-group { flex: 1; min-width: 180px; position: relative; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 4px; }
+.form-group input { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; transition: border-color 0.2s; }
+.form-group input:focus { outline: none; border-color: #4a6cf7; box-shadow: 0 0 0 2px rgba(74,108,247,0.15); }
+.autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: #fff; border: 1px solid #d9d9d9; border-top: none; border-radius: 0 0 6px 6px; max-height: 180px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; }
+.autocomplete-list div { padding: 7px 12px; cursor: pointer; font-size: 13px; }
+.autocomplete-list div:hover, .autocomplete-list div.active { background: #f0f4ff; color: #4a6cf7; }
+.btn-row { display: flex; gap: 10px; margin-top: 4px; }
+.btn { padding: 8px 20px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 500; transition: opacity 0.2s; }
+.btn:hover { opacity: 0.9; }
+.btn-primary { background: #4a6cf7; color: #fff; }
+.btn-danger { background: #e74c3c; color: #fff; }
+.btn-outline { background: transparent; border: 1px solid #d9d9d9; color: #666; }
+.btn-outline:hover { border-color: #4a6cf7; color: #4a6cf7; }
+
+.search-section { background: #fff; border-radius: 10px; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 20px; }
+.search-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.search-group { flex: 1; min-width: 200px; }
+.search-group label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 4px; }
+.search-group input, .search-group select { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; }
+.search-group input:focus, .search-group select:focus { outline: none; border-color: #4a6cf7; box-shadow: 0 0 0 2px rgba(74,108,247,0.15); }
+.stats { font-size: 13px; color: #888; margin-top: 10px; }
+
+.result-section { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; }
+.result-header { padding: 18px 24px; border-bottom: 1px solid #eee; font-size: 15px; font-weight: 600; color: #1a1a2e; }
+.result-empty { padding: 48px 24px; text-align: center; color: #aaa; font-size: 15px; }
+
+.publisher-block { border-bottom: 1px solid #eee; }
+.publisher-block:last-child { border-bottom: none; }
+.publisher-title { background: #f7f8fc; padding: 12px 24px; font-size: 16px; font-weight: 700; color: #1a1a2e; display: flex; align-items: center; gap: 10px; }
+.publisher-title .count { font-size: 12px; font-weight: 400; color: #999; }
+.publisher-table { width: 100%; border-collapse: collapse; }
+.publisher-table th { background: #fafbfc; padding: 10px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #eee; }
+.publisher-table td { padding: 10px 16px; font-size: 14px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+.publisher-table tr:last-child td { border-bottom: none; }
+.publisher-table tr:hover td { background: #fafbfe; }
+.publisher-table .del-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px; transition: all 0.2s; }
+.publisher-table .del-btn:hover { color: #e74c3c; background: #fde8e8; }
+
+.status-bar { background: #fff3cd; border: 1px solid #ffc107; color: #856404; padding: 10px 24px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; display: none; align-items: center; gap: 8px; }
+.status-bar.show { display: flex; }
+.status-bar.success { background: #d4edda; border-color: #28a745; color: #155724; }
+.status-bar.error { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+@media (max-width: 700px) {
+  body { padding: 16px; }
+  .form-row { flex-direction: column; }
+  .form-group { min-width: 100%; }
+  .search-row { flex-direction: column; }
+  .search-group { min-width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>出版社資料庫</h1>
+  <p class="subtitle">記錄及搜尋出版社、中文歌名、英文歌名、書名、作曲家</p>
+
+  <div id="statusBar" class="status-bar"></div>
+
+  <div class="form-section">
+    <h2>＋ 新增記錄</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>中文歌名</label>
+        <input type="text" id="inputChineseTitle" placeholder="輸入中文歌名" data-field="chineseTitle" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>英文歌名</label>
+        <input type="text" id="inputEnglishTitle" placeholder="輸入英文歌名" data-field="englishTitle" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>書名</label>
+        <input type="text" id="inputBookName" placeholder="輸入書名" data-field="bookName" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>作曲家</label>
+        <input type="text" id="inputComposer" placeholder="輸入作曲家" data-field="composer" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>出版社</label>
+        <input type="text" id="inputPublisher" placeholder="輸入出版社名稱" data-field="publisher" autocomplete="off">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addEntry()">新增記錄</button>
+      <button class="btn btn-outline" onclick="clearForm()">清空</button>
+    </div>
+  </div>
+
+  <div class="search-section">
+    <div class="search-row">
+      <div class="search-group">
+        <label>搜尋</label>
+        <input type="text" id="searchInput" placeholder="輸入任何關鍵字搜尋..." oninput="renderTable()">
+      </div>
+      <div class="search-group" style="flex:0 0 160px;min-width:140px;">
+        <label>搜尋欄位</label>
+        <select id="searchField" onchange="renderTable()">
+          <option value="all">全部欄位</option>
+          <option value="chineseTitle">中文歌名</option>
+          <option value="englishTitle">英文歌名</option>
+          <option value="bookName">書名</option>
+          <option value="composer">作曲家</option>
+          <option value="publisher">出版社</option>
+        </select>
+      </div>
+      <div class="btn-row" style="margin-top:18px;">
+        <button class="btn btn-outline" onclick="if(confirm('清除所有本地暫存資料？')){localStorage.removeItem('local_db');clearForm();renderTable();}">清除暫存</button>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <div class="result-section" id="resultSection">
+    <div class="result-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>記錄列表</span>
+      <button class="btn btn-primary" onclick="exportToExcel()" style="padding:6px 14px;font-size:13px;">⬇ 匯出 Excel</button>
+    </div>
+    <div id="resultContent" class="result-empty">暫無記錄，請新增。</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+let db = [];
+let currentId = 1;
+
+function showStatus(msg, type) {
+  const bar = document.getElementById('statusBar');
+  bar.textContent = msg;
+  bar.className = 'status-bar show ' + (type || '');
+  setTimeout(() => bar.classList.remove('show'), 4000);
+}
+
+const DATABASE_URL = 'https://song-8294e-default-rtdb.firebaseio.com';
+
+async function fbGet() {
+  try {
+    const res = await fetch(DATABASE_URL + '/data.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } catch (e) {
+    console.warn('Firebase read failed:', e);
+    return null;
+  }
+}
+
+async function fbPut(data) {
+  try {
+    const res = await fetch(DATABASE_URL + '/data.json', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return res.ok;
+  } catch (e) {
+    console.warn('Firebase write failed:', e);
+    return false;
+  }
+}
+
+async function loadAllData() {
+  const local = localStorage.getItem('local_db');
+  let localData = local ? JSON.parse(local) : [];
+
+  const fbData = await fbGet();
+
+  if (fbData && Array.isArray(fbData) && fbData.length > 0) {
+    const merged = new Map();
+    fbData.forEach(e => merged.set(e.id, e));
+    localData.forEach(e => {
+      if (!merged.has(e.id)) merged.set(e.id, e);
+    });
+    db = Array.from(merged.values());
+    localStorage.setItem('local_db', JSON.stringify(db));
+    if (db !== localData) await fbPut(db);
+  } else {
+    db = localData;
+  }
+
+  if (db.length > 0) {
+    currentId = Math.max(...db.map(e => e.id)) + 1;
+  }
+  renderTable();
+}
+
+async function addEntry() {
+  const fields = ['chineseTitle', 'englishTitle', 'bookName', 'composer', 'publisher'];
+  const vals = {};
+  let empty = true;
+  fields.forEach(f => {
+    const el = document.getElementById('input' + f.charAt(0).toUpperCase() + f.slice(1));
+    vals[f] = el.value.trim();
+    if (vals[f]) empty = false;
+  });
+  if (empty) { showStatus('請填寫至少一個欄位。', 'error'); return; }
+  if (!vals.publisher) { showStatus('出版社為必填欄位。', 'error'); return; }
+
+  vals.id = currentId++;
+  db.push(vals);
+  localStorage.setItem('local_db', JSON.stringify(db));
+  await fbPut(db);
+  showStatus('已新增並同步 (' + db.length + ' 筆)', 'success');
+  clearForm();
+  renderTable();
+}
+
+function clearForm() {
+  ['ChineseTitle','EnglishTitle','BookName','Composer','Publisher'].forEach(id => {
+    document.getElementById('input' + id).value = '';
+  });
+  document.getElementById('inputChineseTitle').focus();
+}
+
+async function deleteEntry(id) {
+  if (!confirm('確定刪除此記錄？')) return;
+  db = db.filter(d => d.id !== id);
+  localStorage.setItem('local_db', JSON.stringify(db));
+  await fbPut(db);
+  showStatus('已刪除並同步', 'success');
+  renderTable();
+}
+
+function renderTable() {
+  const searchVal = document.getElementById('searchInput').value.trim().toLowerCase();
+  const searchField = document.getElementById('searchField').value;
+  const container = document.getElementById('resultContent');
+  const stats = document.getElementById('stats');
+
+  let data = db;
+
+  if (searchVal) {
+    data = data.filter(entry => {
+      if (searchField === 'all') {
+        return Object.values(entry).some(v => typeof v === 'string' && v.toLowerCase().includes(searchVal));
+      }
+      return (entry[searchField] || '').toLowerCase().includes(searchVal);
+    });
+  }
+
+  stats.textContent = '共 ' + data.length + ' 筆記錄（資料庫共 ' + db.length + ' 筆）';
+
+  if (data.length === 0) {
+    container.className = 'result-empty';
+    container.innerHTML = db.length === 0 ? '暫無記錄，請新增。' : '無符合搜尋的記錄。';
+    return;
+  }
+
+  container.className = '';
+
+  const grouped = {};
+  data.forEach(entry => {
+    const p = entry.publisher || '(未填)';
+    if (!grouped[p]) grouped[p] = [];
+    grouped[p].push(entry);
+  });
+
+  const sortedPublishers = Object.keys(grouped).sort((a, b) => a.localeCompare(b, 'en'));
+
+  let html = '';
+  sortedPublishers.forEach(pub => {
+    const entries = grouped[pub];
+    html += '<div class="publisher-block">' +
+      '<div class="publisher-title">' + escapeHtml(pub) + ' <span class="count">(' + entries.length + ' 筆)</span></div>' +
+      '<table class="publisher-table"><thead><tr>' +
+      '<th>中文歌名</th><th>英文歌名</th><th>書名</th><th>作曲家</th><th style="width:44px"></th>' +
+      '</tr></thead><tbody>';
+    entries.forEach(entry => {
+      html += '<tr>' +
+        '<td>' + escapeHtml(entry.chineseTitle) + '</td>' +
+        '<td>' + escapeHtml(entry.englishTitle) + '</td>' +
+        '<td>' + escapeHtml(entry.bookName) + '</td>' +
+        '<td>' + escapeHtml(entry.composer) + '</td>' +
+        '<td><button class="del-btn" onclick="deleteEntry(' + entry.id + ')" title="刪除">✕</button></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function exportToExcel() {
+  if (db.length === 0) { showStatus('沒有記錄可匯出。', 'error'); return; }
+
+  const wsData = [['出版社', '中文歌名', '英文歌名', '書名', '作曲家']];
+  const grouped = {};
+  db.forEach(entry => {
+    const p = entry.publisher || '(未填)';
+    if (!grouped[p]) grouped[p] = [];
+    grouped[p].push(entry);
+  });
+  const sortedPublishers = Object.keys(grouped).sort((a, b) => a.localeCompare(b, 'en'));
+  sortedPublishers.forEach(pub => {
+    grouped[pub].forEach(entry => {
+      wsData.push([pub, entry.chineseTitle, entry.englishTitle, entry.bookName, entry.composer]);
+    });
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{ wch: 24 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 16 }];
+  XLSX.utils.book_append_sheet(wb, ws, '出版社資料');
+  XLSX.writeFile(wb, '出版社資料庫.xlsx');
+  showStatus('已匯出 Excel 檔案', 'success');
+}
+
+function initAutocomplete() {
+  const inputs = document.querySelectorAll('.form-group input[data-field]');
+  inputs.forEach(input => {
+    const field = input.dataset.field;
+    const container = input.parentElement;
+
+    const list = document.createElement('div');
+    list.className = 'autocomplete-list';
+    container.appendChild(list);
+
+    let activeIdx = -1;
+
+    input.addEventListener('input', function() {
+      const val = this.value.trim().toLowerCase();
+      if (!val) { list.style.display = 'none'; return; }
+
+      const seen = new Set();
+      const matches = [];
+      db.forEach(entry => {
+        const v = (entry[field] || '').trim();
+        if (v && v.toLowerCase().includes(val) && !seen.has(v)) {
+          seen.add(v);
+          matches.push(v);
+        }
+      });
+
+      if (matches.length === 0) { list.style.display = 'none'; return; }
+
+      list.innerHTML = '';
+      matches.slice(0, 10).forEach((m) => {
+        const div = document.createElement('div');
+        div.textContent = m;
+        div.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          input.value = m;
+          list.style.display = 'none';
+          input.focus();
+        });
+        list.appendChild(div);
+      });
+      activeIdx = -1;
+      list.style.display = 'block';
+    });
+
+    input.addEventListener('keydown', function(e) {
+      if (list.style.display !== 'block') return;
+      const items = list.querySelectorAll('div');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIdx = activeIdx < items.length - 1 ? activeIdx + 1 : 0;
+        items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIdx = activeIdx > 0 ? activeIdx - 1 : items.length - 1;
+        items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+      } else if (e.key === 'Enter' && activeIdx >= 0) {
+        e.preventDefault();
+        input.value = items[activeIdx].textContent;
+        list.style.display = 'none';
+        activeIdx = -1;
+      } else if (e.key === 'Escape') {
+        list.style.display = 'none';
+        activeIdx = -1;
+      }
+    });
+
+    input.addEventListener('blur', function() {
+      setTimeout(() => { list.style.display = 'none'; }, 150);
+    });
+  });
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  initAutocomplete();
+  loadAllData();
+  showStatus('已連線 Firebase (' + DATABASE_URL + ')', 'success');
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const active = document.activeElement;
+    if (active && active.id && active.id.startsWith('input')) {
+      addEntry();
+    }
+  }
+});
+</script>
+</body>
+</html>
